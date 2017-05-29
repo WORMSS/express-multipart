@@ -1,5 +1,5 @@
 var express = require("express");
-var canvas = require("canvas-prebuilt");
+
 
 const multipartBoundary = "--326814d0-0061-4c2b-9ff4-154637b742bc";
 const nl = "\r\n";
@@ -11,30 +11,60 @@ app.all("/", base);
 app.get("/img", img);
 app.get("/multi", multi);
 
-loadImage("img1")
-.then(() => loadImage("img2"))
+loadImage("random")
 .then(() => {
 	app.listen(80, () => {
 		console.log("server started");
 	});
 });
 
+function canvasMe() {
+	var width = 282;
+	var height = 200;
+	var canvas = new Canvas(width, height);
+	var ctx = canvas.getContext("2d");
+	var text = moment().format("h:mm:ss a");
+	
+	var img = data["random-ctx"];
+
+	ctx.drawImage(img, 0, 0);
+	ctx.font = "15px Arial bold";
+	ctx.textAlign = "right";
+	
+	ctx.fillStyle = "white";
+	ctx.strokeStyle = "black"; 
+	ctx.strokeText(text, width - 3, height - 5);
+	ctx.fillText(text, width - 3, height - 5);
+	return canvas.toBuffer();
+}
 
 function base(req, res) {
 	res.type("html").send(`root <a href="img">img page</a>`);
 }
 
 function img(req, res) {
-	res.type("html").send(`Hello<br><img src="multi">`);
+	res.type("html").send(`<img src="multi">`);
 }
 
 function multi(req, res) {
-	res.type(`multipart/x-mixed-replace; boundary=${multipartBoundary}`);
-	let first = true;
-	step("img1");
+	res.writeHead(200, {
+		'Cache-Control': 'no-cache, private',
+		'Connection': 'Close',
+		'Expires': '0',
+		'Pragma': 'no-cache',
+		'Content-Type': `multipart/x-mixed-replace; boundary=${multipartBoundary}`
+	});
+
+	step(true);
+	var abort = false;
 	
-	function step(name) {
-		let filedata = data[name];
+	req.on("aborted", () => {
+		abort = true;
+		console.log("abort");
+	});
+	
+	function step(first) {
+		filedata = canvasMe();
 		if ( first ) {
 			res.write(`Content-Type: image/png` + nl);
 			res.write(`Content-Length: ${filedata.length}` + nl);
@@ -44,7 +74,8 @@ function multi(req, res) {
 		
 		res.write(filedata);
 		res.write(nl + multipartBoundary + nl + nl, () => {
-			setTimeout(step, 2000, name == "img1" ? "img2" : "img1");
+			if ( abort ) return;
+			setTimeout(step, 1000);
 		});
 	}
 }
