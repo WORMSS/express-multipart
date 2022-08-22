@@ -1,36 +1,29 @@
-const express = require("express");
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const timeimage = require('./timeimage');
 
-const data = {};
+const data = {
+  random: fs.readFileSync(path.join(__dirname, 'random.png')),
+};
 
-loadImage("random")
-.then(() => {
-	const image = data.random;
-	const width = 282;
-	const height = 200;
-	const app = express();
-	
-	app.all("/", base);
-	app.get("/img", img);
-	app.get("/clock.png", require("./timeimage")({ image, width, height,  }));
-	
-	app.listen(80, () => {
-		console.log("server started");
-	});
+const image = data.random;
+const width = 282;
+const height = 200;
+const app = express();
+
+app.all('/', base);
+app.get('/img', img);
+app.get('/clock.png', timeimage({ image, width, height }));
+
+app.listen(3000, () => {
+  console.log('server started');
 });
 
 function base(req, res) {
-	res.type("html").send(`root <a href="img">img page</a>`);
+  res.type('html').send(`root <a href="img">img</a>`);
 }
 
 function img(req, res) {
-	res.type("html").send(`<img src="clock.png">`);
-}
-
-function loadImage(name) {
-	return new Promise((resolve, reject) => {
-		require("fs").readFile(`${__dirname}/${name}.png`, (err, data) => err ? reject(err) : resolve(data));
-	})
-	.then(filedata => {
-		data[name] = filedata;
-	});
+  res.type('html').send(`<img src="clock.png">`);
 }
